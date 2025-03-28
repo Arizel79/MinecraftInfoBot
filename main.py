@@ -1,67 +1,80 @@
 import telebot
 from telebot import formatting
 from config import TOKEN
-from minecraft_server_info import getMcServerInfo
-
-help_text = """Get Minecraft information bot
-Я - бот, который позволяет получать иныормацию о серверах Minecraft
-
-Команды:
-	/stats <ip>"""
+from minecraft_server_info import get_mc_server_info
 
 
-def getDescServer(adress):
+HELP_TEXT = formatting.mbold("Get Minecraft Information Bot") + "\n\n" + \
+            """Я бот, который позволяет получать информацию о серверах Minecraft
+            
+            Доступные команды:
+            /stats IP  информация о сервере
+            /help  справка"""
+
+
+def generate_server_description(address: str, data: dict) -> str:
+    """Описание сервера"""
     try:
-        data = getMcServerInfo(adress)
+        return formatting.munderline("Информация о сервере Minecraft") + f"""
 
-        msg = f"""*Информация о сервере Minecraft*
-
-Запрос: `{adress}`
-Цифровой IP: `{data['adress']}`
-
-Описание:
-`{'\n'.join(data['motd'])}`
-Онлайн игрков: `{data['players']}` / `{data['max players']}`
-Список игроков: {', '.join("`" + i["name"] + "`" for i in data['players list'])}
-Версия: `{data['version']}`
+• Запрос: {formatting.mcode(address)}
+• Цифровой IP: {formatting.mcode(data['address'])}
+• Описание: 
+{formatting.mcode('\n'.join(data['motd']))}
+• Онлайн игроков: {data['players']}/{data['max_players']}
+• Список игроков: {', '.join(formatting.mcode(p['name']) for p in data['players_list'])}
+• Версия: {formatting.mcode(data['version'])}
 """
-    except Exception:
-        msg = "*Error*"
-    return msg
-
-
+    except KeyError as e:
+        telebot.logger.error("Missing key in data: %s", str(e))
+        return formatting.mbold("⚠️ Ошибка формирования данных")
 
 
 bot = telebot.TeleBot(TOKEN)
 
 
 @bot.message_handler(commands=['start'])
-def on_message(msg):
-    bot.send_message(msg.chat.id, 'Bot start!')
+def handle_start(message: telebot.types.Message) -> None:
+    """Команда /start"""
+    bot.send_message(message.chat.id, "Бот запущен! 🚀")
 
 
-@bot.message_handler(content_types='text')
-def on_message(msg):
-    msg_text = msg.text
-    msg_text_lower = msg_text.lower()
-    if msg_text.lower() in ('hello!', 'привет'):
-        bot.send_message(msg.chat.id, 'Привет!')
-    elif msg_text.lower() in ("/help", "/?"):
-        bot.send_message(msg.chat.id, help_text)
-
-    elif msg_text.lower().startswith("/"):
-        spl = msg_text_lower.split()
-        if spl[0] in ("/stats", "/info"):
-            try:
-                ip = spl[1]
-                text = getDescServer(ip)
-                bot.send_message(msg.chat.id, f"{text}", parse_mode='MarkdownV2')
-            except IndexError:
-                bot.send_message(msg.chat.id, "**ERROR** \nLen args not 2!")
+@bot.message_handler(commands=['help'])
+def handle_help(message: telebot.types.Message) -> None:
+    """Команда /help"""
+    bot.send_message(message.chat.id, HELP_TEXT, parse_mode='MarkdownV2')
 
 
+@bot.message_handler(commands=['stats', 'info'])
+def handle_stats(message: telebot.types.Message) -> None:
+    """Запрос информации о сервере"""
+    try:
+        args = message.text.split()
+        if len(args) < 2:
+            raise ValueError
+
+        ip = args[1]
+        server_data = get_mc_server_info(ip)
+        response = generate_server_description(ip, server_data)
+    except ValueError:
+        error_msg = formatting.mbold("Ошибка:") + "\nНе указан IP-адрес сервера!\nПример: /stats mc.example.com"
+        bot.reply_to(message, error_msg, parse_mode='MarkdownV2')
+    except ConnectionError as e:
+        bot.reply_to(message, formatting.mbold(f"⚠️ Ошибка подключения: {str(e)}"), parse_mode='MarkdownV2')
+    except Exception as e:
+        telebot.logger.error("Unexpected error: %s", str(e))
+        bot.reply_to(message, formatting.mbold("⚠️ Произошла непредвиденная ошибка"), parse_mode='MarkdownV2')
     else:
-        bot.send_message(msg.chat.id, '🚫Запрос не распознан. Введите /help')
+        bot.send_message(message.chat.id, response, parse_mode='MarkdownV2')
 
 
-bot.infinity_polling(none_stop=True)
+@bot.message_handler(func=lambda message: True)
+def handle_other_messages(message: telebot.types.Message) -> None:
+    if message.text.lower() in {'hello!', 'привет'}:
+        bot.reply_to(message, "Привет! 👋")
+    else:
+        bot.reply_to(message, "🚫 Команда не распознана. Введите /help")
+
+
+if __name__ == "__main__":
+    bot.infinity_polling()
