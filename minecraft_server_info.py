@@ -38,6 +38,7 @@ def get_mc_server_info(address: str) -> Dict[str, Any]:
     players_data = data.get("players", {})
 
     return {
+        "ping": data["debug"]["ping"],
         "motd": data.get("motd", {}).get("clean", ["Нет описания"]),
         "version": data.get("version", "Неизвестно"),
         "players": players_data.get("online", 0),
