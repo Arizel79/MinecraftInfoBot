@@ -1,9 +1,32 @@
 import json
-import logging
 import requests
 from typing import Dict, Any
+import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('my_app')
+logger.setLevel(logging.DEBUG)
+
+# Форматтер
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# Обработчик для файла
+file_handler = logging.FileHandler('app.log')
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(formatter)
+
+# Обработчик для консоли
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)
+console_handler.setFormatter(formatter)
+
+# Добавляем обработчики к логгеру
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
+
+
+class GetServerInfoError(Exception):
+    """Базовое пользовательское исключение"""
+    pass
 
 
 def get_mc_server_info(address: str) -> Dict[str, Any]:
@@ -34,6 +57,9 @@ def get_mc_server_info(address: str) -> Dict[str, Any]:
     except json.JSONDecodeError as exc:
         logger.error("Invalid JSON response")
         raise ValueError("Некорректный ответ API") from exc
+
+    except ConnectionError:
+        raise GetServerInfoError("Ошибка сети на сервере или API")
 
     players_data = data.get("players", {})
 
