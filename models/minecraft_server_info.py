@@ -46,10 +46,12 @@ def get_mc_server_info(address: str) -> Dict[str, Any]:
     try:
         response = requests.get(
             f"https://api.mcsrvstat.us/3/{address}",
-            timeout=10
+            timeout=15
         )
         response.raise_for_status()
         data = response.json()
+    except requests.exceptions.Timeout:
+        raise GetServerInfoError(f'Превышено время ожидания ответа от сервера "{address}"')
 
     except requests.exceptions.RequestException as exc:
         logger.error("API request error: %s", str(exc))

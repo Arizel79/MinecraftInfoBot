@@ -56,10 +56,13 @@ class MySession:
     def get_fav_servers(self, user_id: int):
         try:
             user = self.session.query(User).filter_by(id=user_id).one()
-            return json.loads(user.fav_servers)
+            res = json.loads(user.fav_servers)
+
+            return res
 
         except NoResultFound:
             print(f"Пользователь с id={user_id} не найден")
+            return {}
 
 
 
