@@ -1,13 +1,20 @@
 import requests               # Библиотека для HTTP-запросов
 import telebot               # Основная библиотека для работы с Telegram API
 from telebot import formatting as frmt  # Модуль форматирования сообщений
-from models.config import TOKEN  # Токен авторизации Telegram-бота из отдельного файла конфигурации
+# from models.config import TOKEN  # Токен авторизации Telegram-бота из отдельного файла конфигурации
 import models                 # Пакет моделей, содержащий бизнес-логику приложения
 from models.minecraft_server_info import get_mc_server_info, GetServerInfoError  # Функции для получения информации о серверах Minecraft
 from random import randint     # Используется для генерации случайных чисел
 import time                   # Работа с датой и временем
 from models.orm import MySession, User  # ORM-модели для работы с базой данных
 import logging                # Стандартная библиотека Python для ведения логов
+
+import os
+
+TOKEN = os.environ.get("BOT_TOKEN")
+assert  not TOKEN is None, "TOKEN!!!"
+
+
 
 # настройка логгера
 logger = logging.getLogger('my_app')
@@ -40,7 +47,7 @@ def print_fav_servers(fav_servers: dict):
 # получаем имя пользователя
 def get_printable_user(from_user):
     usr = from_user
-    return f"{usr.first_name}{"" if not usr.last_name else f' {usr.last_name}'} ({f'@{usr.username}, ' if usr.username else ""}{usr.id})"
+    return f"{usr.first_name}{'' if not usr.last_name else f' {usr.last_name}'} ({f'@{usr.username}, ' if usr.username else ''}{usr.id})"
 
 
 def get_printable_time():
