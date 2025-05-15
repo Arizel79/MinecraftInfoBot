@@ -49,7 +49,7 @@ def write_msg(msg):
     with open("msgs.txt", "a+", encoding="utf-8") as f:
         text = f"[{get_printable_time()}] {msg}\n"
         f.write(text)
-        print(text)
+        print(text, end="")
 
 def on_msg(msg):
     write_msg(f"{get_printable_user(msg.from_user)}: {msg.text}")
